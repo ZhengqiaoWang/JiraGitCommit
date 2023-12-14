@@ -50,20 +50,31 @@ export async function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand(
 		'extension.showJiraGitCommit',
 		async (uri?) => {
-			console.log("showJiraGitCommit call");
 			if (git_api.repositories.length === 0) {
-				console.log("repository is empty!");
+				vscode.window.showErrorMessage("repository is empty!");
 				return false;
 			}
-			let repo: git.Repository = git_api.repositories[0];
+			let repo: git.Repository | undefined = git_api.repositories[0];
+			if (uri) {
+				//如果有多个repo 寻找当前的 进行填充 If there are multiple repos looking for the current to populate
+				repo = gitExtension.getAPI(1).repositories.find(repo => {
+					const uriRoot = uri._rootUri ? uri._rootUri : uri.rootUri;
+					return repo.rootUri.path === uriRoot?.path;
+				});
+			}
+			if (repo === undefined) {
+				vscode.window.showErrorMessage("Invalid repo");
+				return false;
+			}
+			console.log("repos: ", git_api.repositories);
 			let head = repo.state.HEAD;
 			if (head === undefined) {
-				console.log("repo do not have HEAD");
+				vscode.window.showErrorMessage("repo do not have HEAD");
 				return false;
 			}
 			let current_branch = head.name;
 			if (current_branch === undefined) {
-				console.log("repo HEAD do not have name");
+				vscode.window.showErrorMessage("repo HEAD do not have name");
 				return false;
 			}
 			console.log("current branch ", current_branch);
@@ -75,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			console.log("input work time:", work_time);
 
 			if (work_time === undefined) {
-				console.log("cancel input work time");
+				vscode.window.showInformationMessage("cancel input work time");
 				return false;
 			}
 
